@@ -1,20 +1,38 @@
 import { OrbitControls } from "@react-three/drei";
 import { useThree, extend, useLoader, useFrame } from "@react-three/fiber";
 import { useEffect, useRef } from "react";
+import CustomShaderMaterial from "three-custom-shader-material/vanilla";
 import { RGBELoader } from "three/examples/jsm/Addons.js";
 import { DRACOLoader } from "three/examples/jsm/Addons.js";
 import { GLTFLoader } from "three/examples/jsm/Addons.js";
+import vertexShader from './shaders/wobble/vertex.glsl';
+import fragmentShader from './shaders/wobble/fragment.glsl';
 import * as THREE from "three";
 import { useControls } from "leva";
+
+class CustomMeshPhysicalMaterial extends CustomShaderMaterial {
+    constructor(parameters) {
+      super({
+        baseMaterial: THREE.MeshPhysicalMaterial,
+        vertexShader: vertexShader,
+        fragmentShader: fragmentShader,
+        silent: true,
+        ...parameters,
+      });
+    }
+  }
   
+
 // useLoader(GLTFLoader, '', (loader) => {
   //     const dracoLoader = new DRACOLoader()
   //     dracoLoader.setDecoderPath('./draco/')
   //     loader.setDRACOLoader(dracoLoader)
   // })
 
+extend({ CustomMeshPhysicalMaterial })
+
 export default function Experience() {
-  const { camera, gl, scene } = useThree();
+  const { scene, } = useThree();
   const wobble = useRef();
   const material = useRef();
   const plane = useRef();
@@ -27,7 +45,7 @@ export default function Experience() {
         step: 0.001
     },
     roughness: {
-        value: 0,
+        value: 0.5,
         min: 0,
         max: 1,
         step: 0.001
@@ -39,13 +57,13 @@ export default function Experience() {
         step: 0.001
     },
     ior: {
-        value: 0,
+        value: 1.5,
         min: 0,
         max: 10,
         step: 0.001
     },
     thickness: {
-        value: 0,
+        value: 1.5,
         min: 0,
         max: 10,
         step: 0.001
@@ -74,20 +92,24 @@ export default function Experience() {
   return (
     <>
       <OrbitControls />
+      {/* Light */}
+      
+      <directionalLight 
+        args={['#ffffff', 3]}
+        castShadow
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
+        shadow-camera-far={15}
+        shadow-normalBias={0.05}
+        position={[0.25, 2, -2.25]}
+        />
+
       {/* Wobble sphere */}
       <mesh ref={wobble}
         receiveShadow={true}
         castShadow={true}
       >
-        <directionalLight 
-        castShadow={true}
-        shadow={{ mapSize: [1024, 1024], 
-                  camera: { far: 15 },
-                  normalBias: 0.05
-        }}
-        position={[0.25, 2, -2.25]}
-        />
-        <meshPhysicalMaterial
+        <customMeshPhysicalMaterial
           ref={material}
           metalness={controls.metalness}
           roughness={controls.roughness}
@@ -100,9 +122,10 @@ export default function Experience() {
         />
         <icosahedronGeometry args={[2.5, 50]} />
       </mesh>
-      
+      {/* Plane */}
       <mesh ref={plane} 
         receiveShadow={true} 
+        castShadow={true}
         rotation-y={Math.PI} 
         position-y={-5}
         position-z={5}
